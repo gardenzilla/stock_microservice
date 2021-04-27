@@ -4,6 +4,7 @@ use packman::*;
 use prelude::{ServiceError, ServiceResult};
 use std::{env, path::PathBuf};
 use tokio::sync::{oneshot, Mutex};
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 mod prelude;
@@ -121,7 +122,7 @@ impl gzlib::proto::stock::stock_server::Stock for StockService {
     Ok(Response::new(res))
   }
 
-  type GetAllStream = tokio::sync::mpsc::Receiver<Result<StockObject, Status>>;
+  type GetAllStream = ReceiverStream<Result<StockObject, Status>>;
 
   async fn get_all(&self, _request: Request<()>) -> Result<Response<Self::GetAllStream>, Status> {
     // Create channels
@@ -134,7 +135,7 @@ impl gzlib::proto::stock::stock_server::Stock for StockService {
         tx.send(Ok(ots)).await.unwrap();
       }
     });
-    return Ok(Response::new(rx));
+    return Ok(Response::new(ReceiverStream::new(rx)));
   }
 }
 
